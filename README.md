@@ -3,10 +3,10 @@
 ## Init
 
 ```bash
-mkdir <PROJECT NAME>
-cd <PROJECT NAME>
+mkdir project-nrf-detergent-dispenser
+cd project-nrf-detergent-dispenser
 docker run --rm -u $(id -u):$(id -g) -v $(pwd):/new -w /new zephyrprojectrtos/ci:v0.26.6 \
-        bash -c "west init -m https://github.com/fgervais/<PROJECT NAME>.git . && west update"
+        bash -c "west init -m https://github.com/fgervais/project-nrf-detergent-dispenser.git . && west update"
 ```
 
 ## Build
@@ -54,4 +54,4 @@ pyocd flash -e sector -t nrf52840 -f 4000000 build/zephyr/zephyr.hex
 
 # Hardware
 
-https://github.com/fgervais/<PROJECT NAME>_hardware
+https://github.com/fgervais/project-nrf-detergent-dispenser_hardware
