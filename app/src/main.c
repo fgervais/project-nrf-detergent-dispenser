@@ -13,13 +13,17 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 #include <app_version.h>
 
 
-#define SUSPEND_CONSOLE		0
+#define SUSPEND_CONSOLE			0
+#define DISPENSE_REQUIRED_EVENT		BIT(0)
+#define DISPENSE_ERROR_EVENT		BIT(1)
 
 
 static const struct device *const longpress_dev = DEVICE_DT_GET(
 	DT_NODELABEL(longpress));
 
 static bool ready = false;
+
+static K_EVENT_DEFINE(dispense_events);
 
 
 static int change_output_voltage(void)
@@ -84,6 +88,7 @@ int main(void)
 		DT_NODELABEL(bartendro_sync), gpios);
 
 	int ret;
+	uint32_t events;
 
 	LOG_INF("Version: %s", APP_VERSION_FULL);
 
@@ -114,16 +119,29 @@ int main(void)
 		LOG_ERR("Failed to toggle the LED pin, error: %d", ret);
 	}
 
-
 	ready = true;
 
-	LOG_INF("🎉 init done 🎉");
-
 	beeps(&buzzer, 2);
+	LOG_INF("🎉 init done 🎉");
 
 #if SUSPEND_CONSOLE
 	pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
 #endif
+
+	while (1) {
+		events = k_event_wait(&dispense_events,
+					(DISPENSE_REQUIRED_EVENT | 
+					 DISPENSE_ERROR_EVENT),
+					true, K_FOREVER);
+
+		if (events & DISPENSE_REQUIRED_EVENT) {
+			LOG_INF("🧼 Dispensing");
+			beeps(&buzzer, 1);
+		}
+		else if (events & DISPENSE_ERROR_EVENT) {
+			beeps(&buzzer, 3);
+		}
+	}
 
 	return 0;
 }
@@ -139,8 +157,13 @@ static void event_handler(struct input_event *evt)
 		return;
 	}
 
-	if (evt->code == INPUT_KEY_X && !evt->value) {
-		LOG_INF("We need to dispense detergent");
+	if (evt->code == INPUT_KEY_X && evt->value) {
+		LOG_INF("🛎️  We need to dispense detergent");
+		k_event_post(&dispense_events, DISPENSE_REQUIRED_EVENT);
+	}
+	else if (evt->code == INPUT_KEY_A && !evt->value) {
+		LOG_INF("❌ Button short press");
+		k_event_post(&dispense_events, DISPENSE_ERROR_EVENT);
 	}
 
 	// ret = ha_send_trigger_event(&trigger1);
