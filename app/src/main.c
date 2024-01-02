@@ -66,7 +66,6 @@ static void beeps(const struct pwm_dt_spec *buzzer, int number) {
 
 	for (i = 0; i < number; i++) {
 		beep(buzzer);
-		k_sleep(K_MSEC(250));
 	}
 }
 
