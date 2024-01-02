@@ -79,6 +79,22 @@ static void beeps(const struct pwm_dt_spec *buzzer, int number) {
 	}
 }
 
+static int init_bartendro(const struct gpio_dt_spec *reset_pin) {
+	int ret = 0;
+
+	ret = gpio_pin_set_dt(reset_pin, 1);
+	if (ret < 0) {
+		LOG_ERR("Failed to toggle the LED pin, error: %d", ret);
+		goto out;
+	}
+
+	// Ensure that the Bartendro has time to reset (high min. 1ms)
+	k_sleep(K_MSEC(100));
+
+out:
+	return ret;
+}
+
 int main(void)
 {
 	const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
@@ -124,9 +140,10 @@ int main(void)
 		return 0;
 	}
 
-	gpio_pin_set_dt(&reset_pin, 1);
+	ret = init_bartendro(&reset_pin);
 	if (ret < 0) {
-		LOG_ERR("Failed to toggle the LED pin, error: %d", ret);
+		LOG_ERR("Failed to init bartendro");
+		return 1;
 	}
 
 	ready = true;
