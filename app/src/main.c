@@ -2,6 +2,7 @@
 
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/drivers/watchdog.h>
 #include <zephyr/init.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
@@ -12,8 +13,9 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #include <app_version.h>
 
+#include "init.h"
 
-#define SUSPEND_CONSOLE			0
+
 #define DISPENSE_REQUIRED_EVENT		BIT(0)
 #define DISPENSE_ERROR_EVENT		BIT(1)
 
@@ -75,8 +77,8 @@ static void beeps(const struct pwm_dt_spec *buzzer, int number) {
 
 int main(void)
 {
-	// const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
-#if SUSPEND_CONSOLE
+	const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
+#ifdef CONFIG_APP_SUSPEND_CONSOLE
 	const struct device *cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 #endif
 	const struct pwm_dt_spec buzzer = PWM_DT_SPEC_GET(
@@ -89,8 +91,11 @@ int main(void)
 
 	int ret;
 	uint32_t events;
+	int main_wdt_chan_id = -1;
 
-	LOG_INF("Version: %s", APP_VERSION_FULL);
+	init_watchdog(wdt, &main_wdt_chan_id);
+
+	LOG_INF("\n\n🚀 MAIN START (%s) 🚀\n", APP_VERSION_FULL);
 
 	if (!gpio_is_ready_dt(&reset_pin)) {
 		LOG_ERR("LED device %s is not ready", reset_pin.port->name);
@@ -119,24 +124,32 @@ int main(void)
 		LOG_ERR("Failed to toggle the LED pin, error: %d", ret);
 	}
 
-	ready = true;
 
+
+	ready = true;
 	beeps(&buzzer, 2);
 	LOG_INF("🎉 init done 🎉");
 
-#if SUSPEND_CONSOLE
+#ifdef CONFIG_APP_SUSPEND_CONSOLE
 	pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
 #endif
 
 	while (1) {
+		LOG_INF("💤 waiting for events");
 		events = k_event_wait(&dispense_events,
-					(DISPENSE_REQUIRED_EVENT | 
-					 DISPENSE_ERROR_EVENT),
-					true, K_FOREVER);
+				(DISPENSE_REQUIRED_EVENT | 
+				 DISPENSE_ERROR_EVENT),
+				true,
+				K_SECONDS(CONFIG_APP_MAIN_LOOP_PERIOD_SEC));
+
+		LOG_INF("🦴 feed watchdog");
+		wdt_feed(wdt, main_wdt_chan_id);
 
 		if (events & DISPENSE_REQUIRED_EVENT) {
 			LOG_INF("🧼 Dispensing");
 			beeps(&buzzer, 1);
+
+
 		}
 		else if (events & DISPENSE_ERROR_EVENT) {
 			beeps(&buzzer, 3);
