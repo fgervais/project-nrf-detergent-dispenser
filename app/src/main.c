@@ -147,9 +147,6 @@ int main(void)
 				true,
 				K_SECONDS(CONFIG_APP_MAIN_LOOP_PERIOD_SEC));
 
-		LOG_INF("🦴 feed watchdog");
-		wdt_feed(wdt, main_wdt_chan_id);
-
 		if (events & DISPENSE_REQUIRED_EVENT) {
 			LOG_INF("🧼 Dispensing");
 			beeps(&buzzer, 1);
@@ -167,6 +164,9 @@ int main(void)
 		}
 
 		main_loop_counter += 1;
+
+		LOG_INF("🦴 feed watchdog");
+		wdt_feed(wdt, main_wdt_chan_id);
 	}
 
 	return 0;
