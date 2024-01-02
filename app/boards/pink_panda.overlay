@@ -15,9 +15,9 @@
 		bartendro-uart = &uart1;
 	};
 
-	buzzer {
+	pwms {
 		compatible = "pwm-leds";
-		pwm {
+		buzzer: pwm_buzzer {
 			pwms = <&pwm0 0 PWM_USEC(250) PWM_POLARITY_NORMAL>;
 		};
 	};

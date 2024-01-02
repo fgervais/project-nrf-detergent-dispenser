@@ -1,4 +1,5 @@
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/pwm.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device.h>
@@ -18,10 +19,29 @@ static const struct device *const longpress_dev = DEVICE_DT_GET(
 static bool ready = false;
 
 
+static void beep(const struct pwm_dt_spec *buzzer)
+{
+	pwm_set_dt(buzzer, PWM_USEC(250U), PWM_USEC(250U) * 0.53);
+	k_sleep(K_MSEC(50));
+	pwm_set_dt(buzzer, PWM_USEC(250U), 0);
+	k_sleep(K_MSEC(50));
+}
+
+static void beeps(const struct pwm_dt_spec *buzzer, int number) {
+	int i;
+
+	for (i = 0; i < number; i++) {
+		beep(buzzer);
+		k_sleep(K_MSEC(250));
+	}
+}
+
 int main(void)
 {
 	// const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
 	// const struct device *cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+	const struct pwm_dt_spec buzzer = PWM_DT_SPEC_GET(
+		DT_NODELABEL(buzzer));
 
 	const struct gpio_dt_spec reset_pin = GPIO_DT_SPEC_GET(
 		DT_NODELABEL(bartendro_reset), gpios);
@@ -63,6 +83,8 @@ int main(void)
 	ready = true;
 
 	LOG_INF("🎉 init done 🎉");
+
+	beeps(&buzzer, 2);
 
 #if SUSPEND_CONSOLE
 	pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
