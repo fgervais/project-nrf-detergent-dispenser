@@ -11,6 +11,10 @@
 		zephyr,entropy = &rng;
 	};
 
+	aliases {
+		bartendro-uart = &uart1;
+	};
+
 	buzzer {
 		compatible = "pwm-leds";
 		pwm {
@@ -34,7 +38,18 @@
 		long-codes = <INPUT_KEY_X>;
 		long-delay-ms = <1000>;
 	};
+
+	gpios {
+		compatible = "gpio-leds";
+		bartendro_reset: gpio_reset {
+			gpios = <&gpio0 23 GPIO_ACTIVE_HIGH>;
+		};
+		bartendro_sync: gpio_sync {
+			gpios = <&gpio0 19 GPIO_ACTIVE_HIGH>;
+		};
+	};
 };
+
 &pinctrl {
 	uart1_default: uart1_default {
 		group1 {
