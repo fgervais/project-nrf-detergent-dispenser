@@ -1,4 +1,5 @@
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device.h>
 
@@ -6,6 +7,15 @@
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #include <app_version.h>
+
+
+#define SUSPEND_CONSOLE		0
+
+
+static const struct device *const longpress_dev = DEVICE_DT_GET(
+	DT_NODELABEL(longpress));
+
+static bool ready = false;
 
 
 int main(void)
@@ -50,13 +60,42 @@ int main(void)
 	}
 
 
-	LOG_INF("****************************************");
-	LOG_INF("MAIN DONE");
-	LOG_INF("****************************************");
+	ready = true;
 
-	// pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
+	LOG_INF("🎉 init done 🎉");
+
+#if SUSPEND_CONSOLE
+	pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
+#endif
 
 	LOG_INF("PM_DEVICE_ACTION_SUSPEND");
 
 	return 0;
 }
+
+static void event_handler(struct input_event *evt)
+{
+	// int ret;
+
+	LOG_INF("GPIO_KEY %s pressed, zephyr_code=%u, value=%d",
+		 evt->dev->name, evt->code, evt->value);
+
+	// Do nothing on release
+	if (!evt->value) {
+		return;
+	}
+
+	if (!ready) {
+		return;
+	}
+
+	// ret = ha_send_trigger_event(&trigger1);
+	// if (ret < 0) {
+	// 	LOG_ERR("could not send button state");
+	// 	// modules/lib/matter/src/platform/nrfconnect/Reboot.cpp
+	// 	// zephyr/soc/arm/nordic_nrf/nrf52/soc.c
+	// 	sys_reboot(ERROR_BOOT_TOKEN);
+	// }
+}
+
+INPUT_CALLBACK_DEFINE(longpress_dev, event_handler);
