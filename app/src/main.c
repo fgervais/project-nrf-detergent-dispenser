@@ -136,13 +136,12 @@ static void event_handler(struct input_event *evt)
 	LOG_INF("GPIO_KEY %s pressed, zephyr_code=%u, value=%d",
 		 evt->dev->name, evt->code, evt->value);
 
-	// Do nothing on release
-	if (!evt->value) {
+	if (!ready) {
 		return;
 	}
 
-	if (!ready) {
-		return;
+	if (evt->code == INPUT_KEY_X && !evt->value) {
+		LOG_INF("We need to dispense detergent");
 	}
 
 	// ret = ha_send_trigger_event(&trigger1);
