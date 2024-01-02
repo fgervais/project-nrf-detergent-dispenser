@@ -39,7 +39,9 @@ static void beeps(const struct pwm_dt_spec *buzzer, int number) {
 int main(void)
 {
 	// const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
-	// const struct device *cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+#if SUSPEND_CONSOLE
+	const struct device *cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+#endif
 	const struct pwm_dt_spec buzzer = PWM_DT_SPEC_GET(
 		DT_NODELABEL(buzzer));
 
