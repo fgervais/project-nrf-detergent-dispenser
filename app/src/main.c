@@ -1,5 +1,8 @@
+#include <hal/nrf_power.h>
+
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/init.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device.h>
@@ -18,6 +21,37 @@ static const struct device *const longpress_dev = DEVICE_DT_GET(
 
 static bool ready = false;
 
+
+static int change_output_voltage(void)
+{
+	if ((nrf_power_mainregstatus_get(NRF_POWER) ==
+	     NRF_POWER_MAINREGSTATUS_HIGH) &&
+	    ((NRF_UICR->REGOUT0 & UICR_REGOUT0_VOUT_Msk) ==
+	     (UICR_REGOUT0_VOUT_DEFAULT << UICR_REGOUT0_VOUT_Pos))) {
+
+		NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
+		while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
+			;
+		}
+
+		NRF_UICR->REGOUT0 =
+		    (NRF_UICR->REGOUT0 & ~((uint32_t)UICR_REGOUT0_VOUT_Msk)) |
+		    (UICR_REGOUT0_VOUT_3V3 << UICR_REGOUT0_VOUT_Pos);
+
+		NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
+		while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
+			;
+		}
+
+		/* a reset is required for changes to take effect */
+		NVIC_SystemReset();
+	}
+
+	return 0;
+}
+
+SYS_INIT(change_output_voltage, PRE_KERNEL_1,
+	 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
 
 static void beep(const struct pwm_dt_spec *buzzer)
 {
