@@ -129,8 +129,6 @@ int main(void)
 		LOG_ERR("Failed to toggle the LED pin, error: %d", ret);
 	}
 
-
-
 	ready = true;
 	beeps(&buzzer, 2);
 	LOG_INF("🎉 init done 🎉");
@@ -174,8 +172,6 @@ int main(void)
 
 static void event_handler(struct input_event *evt)
 {
-	// int ret;
-
 	LOG_INF("GPIO_KEY %s pressed, zephyr_code=%u, value=%d",
 		 evt->dev->name, evt->code, evt->value);
 
@@ -191,14 +187,6 @@ static void event_handler(struct input_event *evt)
 		LOG_INF("❌ Button short press");
 		k_event_post(&dispense_events, DISPENSE_ERROR_EVENT);
 	}
-
-	// ret = ha_send_trigger_event(&trigger1);
-	// if (ret < 0) {
-	// 	LOG_ERR("could not send button state");
-	// 	// modules/lib/matter/src/platform/nrfconnect/Reboot.cpp
-	// 	// zephyr/soc/arm/nordic_nrf/nrf52/soc.c
-	// 	sys_reboot(ERROR_BOOT_TOKEN);
-	// }
 }
 
 INPUT_CALLBACK_DEFINE(longpress_dev, event_handler);
