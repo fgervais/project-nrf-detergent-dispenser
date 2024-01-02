@@ -126,8 +126,6 @@ int main(void)
 	pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
 #endif
 
-	LOG_INF("PM_DEVICE_ACTION_SUSPEND");
-
 	return 0;
 }
 
