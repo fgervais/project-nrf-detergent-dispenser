@@ -1,5 +1,6 @@
 #include <hal/nrf_power.h>
 
+#include <zephyr/debug/thread_analyzer.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/watchdog.h>
@@ -18,6 +19,9 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #define DISPENSE_REQUIRED_EVENT		BIT(0)
 #define DISPENSE_ERROR_EVENT		BIT(1)
+
+#define RUN_ANALYSIS_EVERY_SEC		60
+#define NUMBER_OF_LOOP_RUN_ANALYSIS	(RUN_ANALYSIS_EVERY_SEC / CONFIG_APP_MAIN_LOOP_PERIOD_SEC)
 
 
 static const struct device *const longpress_dev = DEVICE_DT_GET(
@@ -78,7 +82,7 @@ static void beeps(const struct pwm_dt_spec *buzzer, int number) {
 int main(void)
 {
 	const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
-#ifdef CONFIG_APP_SUSPEND_CONSOLE
+#if defined(CONFIG_APP_SUSPEND_CONSOLE)
 	const struct device *cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 #endif
 	const struct pwm_dt_spec buzzer = PWM_DT_SPEC_GET(
@@ -92,6 +96,7 @@ int main(void)
 	int ret;
 	uint32_t events;
 	int main_wdt_chan_id = -1;
+	uint32_t main_loop_counter = 0;
 
 	init_watchdog(wdt, &main_wdt_chan_id);
 
@@ -130,7 +135,7 @@ int main(void)
 	beeps(&buzzer, 2);
 	LOG_INF("🎉 init done 🎉");
 
-#ifdef CONFIG_APP_SUSPEND_CONSOLE
+#if defined(CONFIG_APP_SUSPEND_CONSOLE)
 	pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
 #endif
 
@@ -154,6 +159,14 @@ int main(void)
 		else if (events & DISPENSE_ERROR_EVENT) {
 			beeps(&buzzer, 3);
 		}
+
+		if (main_loop_counter % NUMBER_OF_LOOP_RUN_ANALYSIS == 0) {
+#if !defined(CONFIG_APP_SUSPEND_CONSOLE)
+			thread_analyzer_print();
+#endif
+		}
+
+		main_loop_counter += 1;
 	}
 
 	return 0;
