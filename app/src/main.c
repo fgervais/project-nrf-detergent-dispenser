@@ -13,8 +13,10 @@ int main(void)
 	// const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
 	// const struct device *cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
-	const struct gpio_dt_spec reset_pin = GPIO_DT_SPEC_GET(DT_NODELABEL(bartendro_reset), gpios);
-	const struct gpio_dt_spec sync_pin = GPIO_DT_SPEC_GET(DT_NODELABEL(bartendro_sync), gpios);
+	const struct gpio_dt_spec reset_pin = GPIO_DT_SPEC_GET(
+		DT_NODELABEL(bartendro_reset), gpios);
+	const struct gpio_dt_spec sync_pin = GPIO_DT_SPEC_GET(
+		DT_NODELABEL(bartendro_sync), gpios);
 
 	int ret;
 
