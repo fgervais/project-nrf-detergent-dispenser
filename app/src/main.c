@@ -75,6 +75,13 @@ static void beep(const struct pwm_dt_spec *buzzer)
 	k_sleep(K_MSEC(50));
 }
 
+static void beep_long(const struct pwm_dt_spec *buzzer)
+{
+	pwm_set_dt(buzzer, PWM_USEC(250U), PWM_USEC(250U) * 0.53);
+	k_sleep(K_MSEC(250));
+	pwm_set_dt(buzzer, PWM_USEC(250U), 0);
+}
+
 static void beeps(const struct pwm_dt_spec *buzzer, int number) {
 	int i;
 
@@ -108,6 +115,11 @@ int main(void)
 
 	LOG_INF("\n\n🚀 MAIN START (%s) 🚀\n", APP_VERSION_FULL);
 
+	if (!pwm_is_ready_dt(&buzzer)) {
+		LOG_ERR("Buzzer is not ready");
+		return 0;
+	}
+
 	if (!gpio_is_ready_dt(&reset_pin)) {
 		LOG_ERR("LED device %s is not ready", reset_pin.port->name);
 		return 0;
@@ -119,7 +131,7 @@ int main(void)
 	}
 
 	if (!device_is_ready(uart)) {
-		LOG_ERR("Failed to configure uart");
+		LOG_ERR("UART is not ready");
 		return 0;
 	}
 
@@ -134,6 +146,8 @@ int main(void)
 		LOG_ERR("Failed to configure the LED pin, error: %d", ret);
 		return 0;
 	}
+
+	beep_long(&buzzer);
 
 	ret = bartendro_init(&reset_pin, uart);
 	if (ret < 0) {
