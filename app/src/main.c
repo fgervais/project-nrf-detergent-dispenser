@@ -8,6 +8,7 @@
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device.h>
+#include <zephyr/sys/reboot.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
@@ -23,6 +24,8 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #define RUN_ANALYSIS_EVERY_SEC		60
 #define NUMBER_OF_LOOP_RUN_ANALYSIS	(RUN_ANALYSIS_EVERY_SEC / CONFIG_APP_MAIN_LOOP_PERIOD_SEC)
+
+#define ERROR_BOOT_TOKEN			(uint8_t)0x38
 
 
 static const struct device *const longpress_dev = DEVICE_DT_GET(
@@ -94,6 +97,8 @@ int main(void)
 	const struct gpio_dt_spec sync_pin = GPIO_DT_SPEC_GET(
 		DT_NODELABEL(bartendro_sync), gpios);
 
+	const struct device *uart = DEVICE_DT_GET(DT_NODELABEL(uart1));
+
 	int ret;
 	uint32_t events;
 	int main_wdt_chan_id = -1;
@@ -113,6 +118,11 @@ int main(void)
 		return 0;
 	}
 
+	if (!device_is_ready(uart)) {
+		LOG_ERR("Failed to configure uart");
+		return 0;
+	}
+
 	ret = gpio_pin_configure_dt(&reset_pin, GPIO_OUTPUT_LOW);
 	if (ret < 0) {
 		LOG_ERR("Failed to configure the LED pin, error: %d", ret);
@@ -125,7 +135,7 @@ int main(void)
 		return 0;
 	}
 
-	ret = bartendro_init(&reset_pin);
+	ret = bartendro_init(&reset_pin, uart);
 	if (ret < 0) {
 		LOG_ERR("Failed to init bartendro");
 		return 1;
@@ -151,7 +161,12 @@ int main(void)
 			LOG_INF("🧼 Dispensing");
 			beeps(&buzzer, 1);
 
-
+			ret = bartendro_dispense(uart);
+			if (ret < 0) {
+				LOG_ERR("Failed to dispense");
+				sys_reboot(ERROR_BOOT_TOKEN);
+			}
+			k_sleep(K_SECONDS(1));
 		}
 		else if (events & DISPENSE_ERROR_EVENT) {
 			beeps(&buzzer, 3);
