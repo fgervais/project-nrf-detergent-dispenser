@@ -89,6 +89,7 @@ int bartendro_init(const struct gpio_dt_spec *reset_pin,
 		   const struct device *uart) {
 	int ret = 0;
 
+	LOG_INF("🏁 Reseting dispenser");
 	ret = bartendro_reset(reset_pin);
 	if (ret < 0) {
 		LOG_ERR("Failed to reset bartendro");
