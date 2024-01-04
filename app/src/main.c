@@ -17,6 +17,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #include "bartendro.h"
 #include "init.h"
+#include "reset.h"
 
 
 #define DISPENSE_REQUIRED_EVENT		BIT(0)
@@ -109,11 +110,24 @@ int main(void)
 	int ret;
 	uint32_t events;
 	int main_wdt_chan_id = -1;
+	uint32_t reset_cause;
+	bool fast_boot = false;
+
 	uint32_t main_loop_counter = 0;
+
 
 	init_watchdog(wdt, &main_wdt_chan_id);
 
 	LOG_INF("\n\n🚀 MAIN START (%s) 🚀\n", APP_VERSION_FULL);
+
+	reset_cause = show_reset_cause();
+	clear_reset_cause();
+
+	if (is_reset_cause_watchdog(reset_cause)
+		 || nrf_power_gpregret_get(NRF_POWER) == ERROR_BOOT_TOKEN) {
+		LOG_INF("🔥 Fast boot!");
+		fast_boot = true;
+	}
 
 	if (!pwm_is_ready_dt(&buzzer)) {
 		LOG_ERR("Buzzer is not ready");
@@ -147,7 +161,9 @@ int main(void)
 		return 0;
 	}
 
-	beep_long(&buzzer);
+	if (!fast_boot) {
+		beep_long(&buzzer);
+	}
 
 	ret = bartendro_init(&reset_pin, uart);
 	if (ret < 0) {
@@ -156,7 +172,9 @@ int main(void)
 	}
 
 	ready = true;
-	beeps(&buzzer, 2);
+	if (!fast_boot) {
+		beeps(&buzzer, 2);
+	}
 	LOG_INF("🎉 init done 🎉");
 
 #if defined(CONFIG_APP_SUSPEND_CONSOLE)
