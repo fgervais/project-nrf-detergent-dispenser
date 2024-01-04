@@ -13,6 +13,9 @@ LOG_MODULE_REGISTER(bartendro, LOG_LEVEL_DBG);
 static int bartendro_reset(const struct gpio_dt_spec *reset_pin) {
 	int ret;
 
+	// Ensure bartendro is powered up and listening for reset
+	k_sleep(K_SECONDS(1));
+
 	// Apply reset (high)
 	ret = gpio_pin_set_dt(reset_pin, 1);
 	if (ret < 0) {
@@ -30,7 +33,8 @@ static int bartendro_reset(const struct gpio_dt_spec *reset_pin) {
 		return ret;
 	}
 
-	k_sleep(K_MSEC(500));
+	// Wait for bartendro to reset
+	k_sleep(K_SECONDS(1));
 
 	return 0;
 }
