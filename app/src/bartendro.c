@@ -10,6 +10,11 @@ LOG_MODULE_REGISTER(bartendro, LOG_LEVEL_DBG);
 #define PROMPT_CHAR_LENGTH	47
 
 
+#if !defined(CONFIG_APP_USE_TEXT_MODE)
+static uint8_t id;
+#endif
+
+
 static int bartendro_reset(const struct gpio_dt_spec *reset_pin) {
 	int ret;
 
@@ -39,27 +44,63 @@ static int bartendro_reset(const struct gpio_dt_spec *reset_pin) {
 	return 0;
 }
 
-static int bartendro_text_mode(const struct device *uart) {
+static int bartendro_read_byte(const struct device *uart,
+		unsigned char *rxdata) {
 	int ret;
-	int i;
-	unsigned char rxdata;
-	// unsigned char *prompt = "\r\nParty Robotics Dispenser at your service!\r\n\r\n>";
 
-	LOG_INF("Waiting for prompt");
-
-	for (i = 0; i < PROMPT_CHAR_LENGTH; i++) {
 retry:
-		ret = uart_poll_in(uart, &rxdata);
-		if (ret == -1) {
-			k_sleep(K_USEC(100));
-			goto retry;
-		}
-		else if (ret < 0) {
-			return ret;
-		}
+	ret = uart_poll_in(uart, rxdata);
+	if (ret == -1) {
+		k_sleep(K_USEC(100));
+		goto retry;
+	}
+	else if (ret < 0) {
+		return ret;
 	}
 
-	LOG_INF("✅ Prompt received");
+	return 0;
+}
+
+static int bartendro_get_id(const struct device *uart,
+		uint8_t *id) {
+	int ret;
+
+	uart_poll_out(uart, '?');
+
+	LOG_INF("Trying to read ID");
+	ret = bartendro_read_byte(uart, id);
+	if (ret < 0) {
+		return ret;
+	}
+
+	LOG_INF("Exit address exchange phase");
+	uart_poll_out(uart, 0xff);
+
+	return 0;
+}
+
+#if defined(CONFIG_APP_USE_TEXT_MODE)
+static int bartendro_text_mode(const struct device *uart) {
+	// int ret;
+	int i;
+	// unsigned char rxdata;
+	// unsigned char *prompt = "\r\nParty Robotics Dispenser at your service!\r\n\r\n>";
+
+// 	LOG_INF("Waiting for prompt");
+
+// 	for (i = 0; i < PROMPT_CHAR_LENGTH; i++) {
+// retry:
+// 		ret = uart_poll_in(uart, &rxdata);
+// 		if (ret == -1) {
+// 			k_sleep(K_USEC(100));
+// 			goto retry;
+// 		}
+// 		else if (ret < 0) {
+// 			return ret;
+// 		}
+// 	}
+
+// 	LOG_INF("✅ Prompt received");
 
 	for (i = 0; i < 3; i++) {
 		uart_poll_out(uart, '!');
@@ -69,6 +110,7 @@ retry:
 
 	return 0;
 }
+#endif
 
 int bartendro_dispense(const struct device *uart) {
 	int i;
@@ -97,11 +139,19 @@ int bartendro_init(const struct gpio_dt_spec *reset_pin,
 	}
 
 	LOG_INF("☎️  Making contact with dispenser");
+#if defined(CONFIG_APP_USE_TEXT_MODE)
 	ret = bartendro_text_mode(uart);
 	if (ret < 0) {
 		LOG_ERR("Could not enter text mode");
 		return ret;
 	}
+#else
+	ret = bartendro_get_id(uart, &id);
+	if (ret < 0) {
+		LOG_ERR("Failed to get ID");
+		return ret;
+	}
+#endif
 
 	LOG_INF("👍 Dispenser ready!"); 
 

@@ -5,6 +5,11 @@ config APP_SUSPEND_CONSOLE
 	help
 	  Suspend console.
 
+config APP_USE_TEXT_MODE
+	bool "Use the Bartendro text mode"
+	help
+	  Use the Bartendro text mode.
+
 config APP_WATCHDOG_TIMEOUT_SEC
 	int "Watchdog timeout (sec)"
 	default 30
