@@ -7,9 +7,6 @@
 LOG_MODULE_REGISTER(bartendro, LOG_LEVEL_DBG);
 
 
-#define PROMPT_CHAR_LENGTH	47
-
-
 #if !defined(CONFIG_APP_USE_TEXT_MODE)
 static uint8_t id;
 #endif
@@ -81,26 +78,7 @@ static int bartendro_get_id(const struct device *uart,
 
 #if defined(CONFIG_APP_USE_TEXT_MODE)
 static int bartendro_text_mode(const struct device *uart) {
-	// int ret;
 	int i;
-	// unsigned char rxdata;
-	// unsigned char *prompt = "\r\nParty Robotics Dispenser at your service!\r\n\r\n>";
-
-// 	LOG_INF("Waiting for prompt");
-
-// 	for (i = 0; i < PROMPT_CHAR_LENGTH; i++) {
-// retry:
-// 		ret = uart_poll_in(uart, &rxdata);
-// 		if (ret == -1) {
-// 			k_sleep(K_USEC(100));
-// 			goto retry;
-// 		}
-// 		else if (ret < 0) {
-// 			return ret;
-// 		}
-// 	}
-
-// 	LOG_INF("✅ Prompt received");
 
 	for (i = 0; i < 3; i++) {
 		uart_poll_out(uart, '!');
