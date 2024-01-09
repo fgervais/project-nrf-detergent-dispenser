@@ -124,6 +124,7 @@ static int bartendro_get_id(const struct device *uart,
 	if (ret < 0) {
 		return ret;
 	}
+	LOG_INF("🪪 ID: 0x%02x", *id);
 
 	LOG_INF("Exit address exchange phase");
 	uart_poll_out(uart, 0xff);
@@ -176,6 +177,8 @@ int bartendro_dispense(const struct device *uart) {
 	payload[6] = (uint8_t)crc;
 	payload[7] = (uint8_t)(crc >> 8);
 
+	LOG_HEXDUMP_DBG(payload, sizeof(payload), "payload:");
+
 	packed[0] = 0xff;
 	packed[1] = 0xff;
 	pack_7bit(payload, sizeof(payload), &packed[2], &packed_size);
@@ -196,7 +199,7 @@ int bartendro_dispense(const struct device *uart) {
 	}
 
 	if (ack != 0) {
-		LOG_INF("❌ NoACK");
+		LOG_INF("❌ NoACK (%d)", ack);
 		return -1;
 	}
 
