@@ -165,7 +165,7 @@ int main(void)
 		beep_long(&buzzer);
 	}
 
-	ret = bartendro_init(&reset_pin, uart);
+	ret = bartendro_init(&reset_pin, &sync_pin, uart);
 	if (ret < 0) {
 		LOG_ERR("Failed to init bartendro");
 		return 1;
