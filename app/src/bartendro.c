@@ -8,7 +8,10 @@ LOG_MODULE_REGISTER(bartendro, LOG_LEVEL_DBG);
 
 
 #define PACKET_TICK_SPEED_DISPENSE	22
+#define PACKET_LED_OFF			7
 #define RAW_PACKET_SIZE			10
+#define BODY_LENGTH_WITH_PAYLOAD	8
+#define BODY_LENGTH_NO_PAYLOAD		4
 
 
 #if !defined(CONFIG_APP_USE_TEXT_MODE)
@@ -132,6 +135,54 @@ static int bartendro_get_id(const struct device *uart,
 	return 0;
 }
 
+static int bartendro_led_off(const struct device *uart,
+		uint8_t *id) {
+	int ret;
+	int i;
+	uint8_t body[BODY_LENGTH_NO_PAYLOAD] = {
+			*id,
+			PACKET_LED_OFF,
+			0, 0 };
+	uint8_t packed[RAW_PACKET_SIZE + 2]; // +2 for the header
+	uint8_t packed_size;
+	unsigned char ack;
+	uint16_t crc;
+
+	bartendro_crc16(body, BODY_LENGTH_NO_PAYLOAD - 2, &crc);
+	body[BODY_LENGTH_NO_PAYLOAD - 2] = (uint8_t)crc;
+	body[BODY_LENGTH_NO_PAYLOAD - 1] = (uint8_t)(crc >> 8);
+
+	LOG_HEXDUMP_DBG(body, sizeof(body), "body:");
+
+	packed[0] = 0xff;
+	packed[1] = 0xff;
+	pack_7bit(body, sizeof(body), &packed[2], &packed_size);
+
+	LOG_INF("Sending led_off command");
+
+	for (i = 0; i < sizeof(packed); i++) {
+		uart_poll_out(uart, packed[i]);
+	}
+
+	LOG_INF("✅ led_off command sent");
+
+	LOG_INF("Reading ACK");
+
+	ret = bartendro_read_byte(uart, &ack);
+	if (ret < 0) {
+		return ret;
+	}
+
+	if (ack != 0) {
+		LOG_INF("❌ NoACK (%d)", ack);
+		return -1;
+	}
+
+	LOG_INF("✅ ACK received");
+
+	return 0;
+}
+
 #if defined(CONFIG_APP_USE_TEXT_MODE)
 static int bartendro_text_mode(const struct device *uart) {
 	int i;
@@ -163,25 +214,25 @@ int bartendro_dispense(const struct device *uart) {
 int bartendro_dispense(const struct device *uart) {
 	int ret;
 	int i;
-	uint8_t payload[8] = { id,
-			       PACKET_TICK_SPEED_DISPENSE,
-			       50, 0,
-			       200, 0,
-			       0, 0 };
+	uint8_t body[BODY_LENGTH_WITH_PAYLOAD] = { id,
+			    PACKET_TICK_SPEED_DISPENSE,
+			    50, 0,
+			    200, 0,
+			    0, 0 };
 	uint8_t packed[RAW_PACKET_SIZE + 2]; // +2 for the header
 	uint8_t packed_size;
 	unsigned char ack;
 	uint16_t crc;
 
-	bartendro_crc16(payload, 6, &crc);
-	payload[6] = (uint8_t)crc;
-	payload[7] = (uint8_t)(crc >> 8);
+	bartendro_crc16(body, BODY_LENGTH_WITH_PAYLOAD - 2, &crc);
+	body[BODY_LENGTH_WITH_PAYLOAD - 2] = (uint8_t)crc;
+	body[BODY_LENGTH_WITH_PAYLOAD - 1] = (uint8_t)(crc >> 8);
 
-	LOG_HEXDUMP_DBG(payload, sizeof(payload), "payload:");
+	LOG_HEXDUMP_DBG(body, sizeof(body), "body:");
 
 	packed[0] = 0xff;
 	packed[1] = 0xff;
-	pack_7bit(payload, sizeof(payload), &packed[2], &packed_size);
+	pack_7bit(body, sizeof(body), &packed[2], &packed_size);
 
 	LOG_INF("Sending dispense command");
 
@@ -233,6 +284,8 @@ int bartendro_init(const struct gpio_dt_spec *reset_pin,
 		LOG_ERR("Failed to get ID");
 		return ret;
 	}
+
+	bartendro_led_off(uart, &id);
 #endif
 
 	LOG_INF("👍 Dispenser ready!"); 
