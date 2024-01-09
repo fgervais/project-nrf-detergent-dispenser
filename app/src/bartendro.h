@@ -3,6 +3,7 @@
 
 int bartendro_dispense(const struct device *uart);
 int bartendro_init(const struct gpio_dt_spec *reset_pin,
+				   const struct gpio_dt_spec *sync_pin,
 				   const struct device *uart);
 
 #endif /* BARTENDRO_H_ */

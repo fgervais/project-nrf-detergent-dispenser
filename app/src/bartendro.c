@@ -136,6 +136,7 @@ static int bartendro_get_id(const struct device *uart,
 }
 
 static int bartendro_led_off(const struct device *uart,
+		const struct gpio_dt_spec *sync_pin,
 		uint8_t *id) {
 	int ret;
 	int i;
@@ -179,6 +180,13 @@ static int bartendro_led_off(const struct device *uart,
 	}
 
 	LOG_INF("✅ ACK received");
+
+	// Toggle the pin a few times.
+	// Not sure exactly how many times I need to toggle it.
+	for (i = 0; i < 10; i++) {
+		gpio_pin_toggle_dt(sync_pin);
+		k_sleep(K_MSEC(1));
+	}
 
 	return 0;
 }
@@ -261,6 +269,7 @@ int bartendro_dispense(const struct device *uart) {
 #endif
 
 int bartendro_init(const struct gpio_dt_spec *reset_pin,
+		   const struct gpio_dt_spec *sync_pin,
 		   const struct device *uart) {
 	int ret = 0;
 
@@ -285,7 +294,7 @@ int bartendro_init(const struct gpio_dt_spec *reset_pin,
 		return ret;
 	}
 
-	bartendro_led_off(uart, &id);
+	bartendro_led_off(uart, sync_pin, &id);
 #endif
 
 	LOG_INF("👍 Dispenser ready!"); 
